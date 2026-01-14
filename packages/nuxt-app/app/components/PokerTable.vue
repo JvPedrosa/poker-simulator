@@ -108,6 +108,20 @@
       </button>
     </div>
 
+    <!-- Indicador de Mão do Jogador -->
+    <div v-if="playerHandInfo && gameState.phase !== 'waiting'" class="hand-indicator">
+      <div class="hand-indicator-content">
+        <span class="hand-icon">🃏</span>
+        <div class="hand-details">
+          <span class="hand-label">Sua Mão:</span>
+          <span class="hand-name" :class="handStrengthClass">{{ playerHandInfo.name }}</span>
+        </div>
+        <div class="hand-strength-bar">
+          <div class="hand-strength-fill" :style="{ width: handStrengthPercent + '%' }"></div>
+        </div>
+      </div>
+    </div>
+
     <div v-if="gameState.winner && gameState.phase === 'showdown'" class="winner-announcement">
       <div class="winner-content">
         <span class="trophy">🏆</span>
@@ -147,7 +161,8 @@ const {
   check, 
   allIn, 
   newRound,
-  aiAction 
+  aiAction,
+  evaluateHand
 } = usePoker()
 
 const raiseAmount = ref(20)
@@ -162,6 +177,29 @@ const phaseLabels: Record<string, string> = {
 }
 
 const phaseLabel = computed(() => phaseLabels[gameState.value.phase] || '')
+
+// Avaliação da mão do jogador em tempo real
+const playerHandInfo = computed(() => {
+  const player = gameState.value.players[0]
+  if (!player || player.hand.length === 0) return null
+  
+  return evaluateHand(player.hand, gameState.value.communityCards)
+})
+
+const handStrengthPercent = computed(() => {
+  if (!playerHandInfo.value) return 0
+  return (playerHandInfo.value.rank / 10) * 100
+})
+
+const handStrengthClass = computed(() => {
+  if (!playerHandInfo.value) return ''
+  const rank = playerHandInfo.value.rank
+  if (rank >= 8) return 'strength-legendary'
+  if (rank >= 6) return 'strength-strong'
+  if (rank >= 4) return 'strength-medium'
+  if (rank >= 2) return 'strength-weak'
+  return 'strength-low'
+})
 
 const isPlayerTurn = computed(() => {
   const currentPlayer = gameState.value.players[gameState.value.currentPlayerIndex]
@@ -571,5 +609,87 @@ onMounted(() => {
 
 .contact-link .icon {
   font-size: 16px;
+}
+
+/* Indicador de Mão */
+.hand-indicator {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: linear-gradient(145deg, #2d3748, #1a202c);
+  border: 2px solid #4a5568;
+  border-radius: 15px;
+  padding: 15px 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  z-index: 50;
+  min-width: 180px;
+}
+
+.hand-indicator-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.hand-icon {
+  font-size: 28px;
+}
+
+.hand-details {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.hand-label {
+  color: #a0aec0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.hand-name {
+  font-size: 18px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.hand-name.strength-legendary {
+  color: #f6e05e;
+  text-shadow: 0 0 10px rgba(246, 224, 94, 0.5);
+}
+
+.hand-name.strength-strong {
+  color: #68d391;
+}
+
+.hand-name.strength-medium {
+  color: #4299e1;
+}
+
+.hand-name.strength-weak {
+  color: #ed8936;
+}
+
+.hand-name.strength-low {
+  color: #a0aec0;
+}
+
+.hand-strength-bar {
+  width: 100%;
+  height: 6px;
+  background: #2d3748;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 5px;
+}
+
+.hand-strength-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #e53e3e 0%, #ed8936 25%, #ecc94b 50%, #68d391 75%, #38b2ac 100%);
+  border-radius: 3px;
+  transition: width 0.5s ease;
 }
 </style>
