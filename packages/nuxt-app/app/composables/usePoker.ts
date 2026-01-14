@@ -16,6 +16,7 @@ export interface Player {
   isCurrentPlayer: boolean;
   handRank?: HandRank;
   personality?: "tight" | "loose" | "aggressive" | "passive";
+  hasActed?: boolean;
 }
 
 export interface HandRank {
@@ -167,6 +168,7 @@ export const usePoker = () => {
       player.isDealer = index === state.dealerIndex;
       player.isCurrentPlayer = false;
       player.handRank = undefined;
+      player.hasActed = false;
     });
 
     // Deal 2 cards to each player
@@ -239,8 +241,11 @@ export const usePoker = () => {
   const nextPhase = () => {
     const state = gameState.value;
 
-    // Reset bets for new round
-    state.players.forEach((p) => (p.bet = 0));
+    // Reset bets and hasActed for new round
+    state.players.forEach((p) => {
+      p.bet = 0;
+      p.hasActed = false;
+    });
     state.currentBet = 0;
 
     switch (state.phase) {
@@ -274,8 +279,9 @@ export const usePoker = () => {
     }
 
     // Set first active player after dealer
-    state.currentPlayerIndex = getNextActivePlayer(state.dealerIndex);
+    const newPlayerIndex = getNextActivePlayer(state.dealerIndex);
     state.players.forEach((p) => (p.isCurrentPlayer = false));
+    state.currentPlayerIndex = newPlayerIndex;
     const nextPlayer = state.players[state.currentPlayerIndex];
     if (nextPlayer) {
       nextPlayer.isCurrentPlayer = true;
@@ -290,6 +296,7 @@ export const usePoker = () => {
     
     currentPlayer.folded = true;
     currentPlayer.isCurrentPlayer = false;
+    currentPlayer.hasActed = true;
 
     // Check if only one player remains
     const activePlayers = state.players.filter((p) => !p.folded);
@@ -321,6 +328,7 @@ export const usePoker = () => {
     }
 
     currentPlayer.isCurrentPlayer = false;
+    currentPlayer.hasActed = true;
     moveToNextPlayer();
   };
 
@@ -337,9 +345,17 @@ export const usePoker = () => {
       currentPlayer.bet = totalBet;
       state.pot += toCall;
       state.currentBet = totalBet;
+      
+      // Reset hasActed for all other players since bet increased
+      state.players.forEach((p) => {
+        if (p.id !== currentPlayer.id && !p.folded) {
+          p.hasActed = false;
+        }
+      });
     }
 
     currentPlayer.isCurrentPlayer = false;
+    currentPlayer.hasActed = true;
     moveToNextPlayer();
   };
 
@@ -350,6 +366,7 @@ export const usePoker = () => {
 
     if (currentPlayer.bet === state.currentBet) {
       currentPlayer.isCurrentPlayer = false;
+      currentPlayer.hasActed = true;
       moveToNextPlayer();
     }
   };
@@ -367,30 +384,40 @@ export const usePoker = () => {
 
     if (currentPlayer.bet > state.currentBet) {
       state.currentBet = currentPlayer.bet;
+      
+      // Reset hasActed for all other players since bet increased
+      state.players.forEach((p) => {
+        if (p.id !== currentPlayer.id && !p.folded) {
+          p.hasActed = false;
+        }
+      });
     }
 
     currentPlayer.isCurrentPlayer = false;
+    currentPlayer.hasActed = true;
     moveToNextPlayer();
   };
 
   const moveToNextPlayer = () => {
     const state = gameState.value;
 
-    // Check if round is complete
+    // Get all active players (not folded)
     const activePlayers = state.players.filter((p) => !p.folded);
+    
+    // Check if all active players have acted and bets are equal
+    const allHaveActed = activePlayers.every((p) => p.hasActed === true);
     const allBetsEqual = activePlayers.every(
       (p) => p.bet === state.currentBet || p.chips === 0
     );
 
-    // Check if we've gone around the table at least once
-    const nextIndex = getNextActivePlayer(state.currentPlayerIndex);
-    
-    // If all bets are equal and we're back to a player who already acted this round, move to next phase
-    if (allBetsEqual) {
+    // If everyone has acted and bets are equal, move to next phase
+    if (allHaveActed && allBetsEqual) {
       nextPhase();
       return;
     }
 
+    // Find next active player
+    const nextIndex = getNextActivePlayer(state.currentPlayerIndex);
     state.currentPlayerIndex = nextIndex;
     const nextPlayer = state.players[nextIndex];
     if (nextPlayer) {

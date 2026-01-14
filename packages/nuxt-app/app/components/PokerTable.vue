@@ -201,8 +201,8 @@ const raiseAction = () => {
 }
 
 // Watch for AI turns
-watch(() => gameState.value.currentPlayerIndex, async (newIndex) => {
-  if (gameState.value.phase === 'waiting' || gameState.value.phase === 'showdown') return
+watch([() => gameState.value.currentPlayerIndex, () => gameState.value.phase], async ([newIndex, newPhase]) => {
+  if (newPhase === 'waiting' || newPhase === 'showdown') return;
   
   const currentPlayer = gameState.value.players[newIndex]
   if (currentPlayer && currentPlayer.id !== 0 && !currentPlayer.folded) {
