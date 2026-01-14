@@ -15,6 +15,7 @@ export interface Player {
   isDealer: boolean;
   isCurrentPlayer: boolean;
   handRank?: HandRank;
+  personality?: "tight" | "loose" | "aggressive" | "passive";
 }
 
 export interface HandRank {
@@ -113,6 +114,13 @@ export const usePoker = () => {
   // Initialize game with players
   const initGame = (playerCount: number = 4, startingChips: number = 1000) => {
     const players: Player[] = [];
+    const personalities: Array<"tight" | "loose" | "aggressive" | "passive"> = [
+      "tight",
+      "loose",
+      "aggressive",
+      "passive"
+    ];
+    
     for (let i = 0; i < playerCount; i++) {
       players.push({
         id: i,
@@ -123,6 +131,7 @@ export const usePoker = () => {
         folded: false,
         isDealer: i === 0,
         isCurrentPlayer: false,
+        personality: i === 0 ? undefined : personalities[i % 4],
       });
     }
 
@@ -634,38 +643,117 @@ export const usePoker = () => {
 
     if (!currentPlayer || currentPlayer.id === 0 || currentPlayer.folded) return;
 
-    // Simple AI logic
-    const handStrength = Math.random(); // Simplified hand strength evaluation
+    // Evaluate current hand strength
+    const handRank = evaluateHand(currentPlayer.hand, state.communityCards);
+    const handStrength = calculateHandStrength(handRank, state.phase);
+    
+    // Calculate pot odds
     const callAmount = state.currentBet - currentPlayer.bet;
-
+    const potOdds = callAmount > 0 ? callAmount / (state.pot + callAmount) : 0;
+    
+    // Get personality modifiers
+    const personality = currentPlayer.personality || "passive";
+    const { aggression, tightness } = getPersonalityModifiers(personality);
+    
+    // Adjust thresholds based on personality
+    const adjustedStrength = handStrength + (Math.random() - 0.5) * 0.2;
+    const raiseThreshold = 0.65 - (aggression * 0.15);
+    const callThreshold = 0.35 - (tightness * 0.15);
+    const foldThreshold = 0.25 + (tightness * 0.1);
+    
+    // Decision making
     if (callAmount === 0) {
-      // Can check
-      if (handStrength > 0.6) {
-        raise(state.bigBlind * 2);
+      // Can check for free
+      if (adjustedStrength > raiseThreshold && currentPlayer.chips > state.bigBlind * 3) {
+        const raiseSize = calculateRaiseSize(adjustedStrength, aggression, state);
+        raise(raiseSize);
       } else {
         check();
       }
-    } else if (callAmount > currentPlayer.chips * 0.5) {
-      // Expensive call
-      if (handStrength > 0.7) {
-        call();
+    } else if (callAmount >= currentPlayer.chips) {
+      // All-in situation
+      if (adjustedStrength > 0.75) {
+        allIn();
       } else {
         fold();
       }
     } else {
-      // Cheap call
-      if (handStrength > 0.4) {
-        if (handStrength > 0.8 && Math.random() > 0.5) {
-          raise(state.bigBlind * 2);
-        } else {
-          call();
-        }
-      } else if (handStrength > 0.2) {
+      // Normal betting situation
+      const callRatio = callAmount / currentPlayer.chips;
+      
+      if (adjustedStrength > raiseThreshold && callRatio < 0.3 && currentPlayer.chips > callAmount + state.bigBlind * 2) {
+        // Strong hand, raise
+        const raiseSize = calculateRaiseSize(adjustedStrength, aggression, state);
+        raise(raiseSize);
+      } else if (adjustedStrength > callThreshold || (potOdds < 0.3 && adjustedStrength > 0.3)) {
+        // Decent hand or good pot odds, call
         call();
-      } else {
+      } else if (adjustedStrength < foldThreshold || callRatio > 0.5) {
+        // Weak hand or expensive call, fold
         fold();
+      } else {
+        // Marginal hand, sometimes call, sometimes fold
+        if (Math.random() > 0.5) {
+          call();
+        } else {
+          fold();
+        }
       }
     }
+  };
+
+  // Calculate hand strength based on rank and phase
+  const calculateHandStrength = (handRank: HandRank, phase: GamePhase): number => {
+    // Base strength from hand rank (0-1 scale)
+    let strength = handRank.rank / 10;
+    
+    // Adjust based on game phase
+    const phaseMultipliers: Record<GamePhase, number> = {
+      waiting: 1,
+      preflop: 0.8,  // Less confident pre-flop
+      flop: 0.9,
+      turn: 0.95,
+      river: 1,
+      showdown: 1
+    };
+    
+    strength *= phaseMultipliers[phase];
+    
+    // Add some variance for pairs and high cards based on actual card values
+    if (handRank.rank === 2) { // One Pair
+      const pairValue = handRank.cards[0]?.value || 2;
+      strength += (pairValue / 14) * 0.1; // Bonus for high pairs
+    } else if (handRank.rank === 1) { // High Card
+      const highCard = handRank.cards[0]?.value || 2;
+      strength += (highCard / 14) * 0.05; // Small bonus for high cards
+    }
+    
+    return Math.min(strength, 1);
+  };
+
+  // Get personality modifiers
+  const getPersonalityModifiers = (personality: "tight" | "loose" | "aggressive" | "passive") => {
+    const modifiers = {
+      tight: { aggression: 0.3, tightness: 0.7 },
+      loose: { aggression: 0.5, tightness: 0.2 },
+      aggressive: { aggression: 0.8, tightness: 0.4 },
+      passive: { aggression: 0.2, tightness: 0.5 }
+    };
+    return modifiers[personality];
+  };
+
+  // Calculate raise size based on hand strength and personality
+  const calculateRaiseSize = (handStrength: number, aggression: number, state: GameState): number => {
+    const baseRaise = state.bigBlind * 2;
+    const strengthMultiplier = 1 + (handStrength * 2);
+    const aggressionMultiplier = 1 + aggression;
+    
+    const raiseSize = Math.floor(baseRaise * strengthMultiplier * aggressionMultiplier);
+    
+    // Random variation
+    const variation = 1 + (Math.random() - 0.5) * 0.3;
+    
+    return Math.floor(raiseSize * variation);
   };
 
   return {
