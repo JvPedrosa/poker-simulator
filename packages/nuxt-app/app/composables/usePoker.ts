@@ -382,10 +382,11 @@ export const usePoker = () => {
       (p) => p.bet === state.currentBet || p.chips === 0
     );
 
-    // Check if we've gone around the table
+    // Check if we've gone around the table at least once
     const nextIndex = getNextActivePlayer(state.currentPlayerIndex);
-
-    if (allBetsEqual && nextIndex <= state.currentPlayerIndex) {
+    
+    // If all bets are equal and we're back to a player who already acted this round, move to next phase
+    if (allBetsEqual) {
       nextPhase();
       return;
     }
