@@ -118,6 +118,21 @@
         <span class="winner-pot">+{{ gameState.pot }} fichas</span>
       </div>
     </div>
+
+    <footer class="game-footer">
+      <p class="developer">Desenvolvido por <strong>João Victor Pedrosa Cândido</strong></p>
+      <div class="contact-links">
+        <a href="https://www.linkedin.com/in/joao-victor-pedrosa-candido/" target="_blank" rel="noopener noreferrer" class="contact-link">
+          <span class="icon">💼</span> LinkedIn
+        </a>
+        <a href="https://github.com/JvPedrosa" target="_blank" rel="noopener noreferrer" class="contact-link">
+          <span class="icon">💻</span> GitHub
+        </a>
+        <a href="https://my-portfolio-liart-one-93.vercel.app/" target="_blank" rel="noopener noreferrer" class="contact-link">
+          <span class="icon">🌐</span> Portfólio
+        </a>
+      </div>
+    </footer>
   </div>
 </template>
 
@@ -504,5 +519,57 @@ onMounted(() => {
   color: #48bb78;
   font-size: 24px;
   font-weight: bold;
+}
+
+.game-footer {
+  width: 100%;
+  padding: 30px 20px;
+  background: rgba(0, 0, 0, 0.3);
+  border-top: 2px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+  margin-top: auto;
+}
+
+.developer {
+  color: #a0aec0;
+  font-size: 14px;
+  margin-bottom: 15px;
+}
+
+.developer strong {
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+.contact-links {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.contact-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #cbd5e0;
+  text-decoration: none;
+  font-size: 13px;
+  transition: all 0.3s ease;
+}
+
+.contact-link:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #e2e8f0;
+  transform: translateY(-2px);
+}
+
+.contact-link .icon {
+  font-size: 16px;
 }
 </style>
