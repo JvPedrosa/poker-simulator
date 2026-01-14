@@ -16,31 +16,40 @@
   box-sizing: border-box;
 }
 
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: #1a1a2e;
   color: white;
-  overflow-x: hidden;
 }
 
 .app {
-  min-height: 100vh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .header {
   background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-  padding: 20px;
+  padding: 15px;
   text-align: center;
   border-bottom: 2px solid #4a5568;
+  flex-shrink: 0;
 }
 
 .header h1 {
   color: #f6e05e;
-  font-size: 2rem;
+  font-size: 1.8rem;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 main {
-  padding: 20px;
+  flex: 1;
+  overflow: hidden;
 }
 </style>

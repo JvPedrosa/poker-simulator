@@ -258,13 +258,14 @@ onMounted(() => {
 
 <style scoped>
 .poker-table {
-  min-height: 100vh;
+  height: 100%;
   background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
-  padding: 20px;
+  padding: 15px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 80px;
+  gap: 15px;
+  overflow: hidden;
 }
 
 .table-felt {
@@ -561,17 +562,18 @@ onMounted(() => {
 
 .game-footer {
   width: 100%;
-  padding: 30px 20px;
+  padding: 10px 20px;
   background: rgba(0, 0, 0, 0.3);
-  border-top: 2px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   text-align: center;
+  flex-shrink: 0;
   margin-top: auto;
 }
 
 .developer {
   color: #a0aec0;
-  font-size: 14px;
-  margin-bottom: 15px;
+  font-size: 12px;
+  margin-bottom: 8px;
 }
 
 .developer strong {
@@ -581,7 +583,7 @@ onMounted(() => {
 
 .contact-links {
   display: flex;
-  gap: 20px;
+  gap: 15px;
   justify-content: center;
   flex-wrap: wrap;
 }
@@ -589,14 +591,14 @@ onMounted(() => {
 .contact-link {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
+  gap: 5px;
+  padding: 5px 12px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
+  border-radius: 6px;
   color: #cbd5e0;
   text-decoration: none;
-  font-size: 13px;
+  font-size: 12px;
   transition: all 0.3s ease;
 }
 
