@@ -67,6 +67,7 @@
             v-model.number="raiseAmount" 
             :min="minRaise" 
             :max="maxRaise"
+            :step="raiseStep"
             class="raise-slider"
           />
           <button 
@@ -229,6 +230,9 @@ const maxRaise = computed(() => {
   return player.chips
 })
 
+// Incremento do raise (múltiplos do big blind)
+const raiseStep = computed(() => gameState.value.bigBlind)
+
 const startGame = () => {
   initGame(4, 1000)
   dealCards()
@@ -279,7 +283,7 @@ onMounted(() => {
     inset 0 0 50px rgba(0, 0, 0, 0.5),
     0 10px 30px rgba(0, 0, 0, 0.5);
   position: relative;
-  margin: 20px 0;
+  margin-top: 100px;
 }
 
 .table-center {
@@ -349,7 +353,7 @@ onMounted(() => {
 }
 
 .position-0 {
-  bottom: -80px;
+  bottom: -50px;
   left: 50%;
   transform: translateX(-50%);
 }
