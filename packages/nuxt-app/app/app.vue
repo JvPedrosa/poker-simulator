@@ -50,6 +50,28 @@ body {
 
 main {
   flex: 1;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* ===== VERSÃO MOBILE ===== */
+@media (max-width: 768px) {
+  .header {
+    padding: 10px;
+  }
+
+  .header h1 {
+    font-size: 1.3rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: 8px;
+  }
+
+  .header h1 {
+    font-size: 1.1rem;
+  }
 }
 </style>

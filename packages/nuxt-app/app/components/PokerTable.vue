@@ -269,7 +269,8 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   gap: 15px;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .table-felt {
@@ -697,5 +698,254 @@ onMounted(() => {
   background: linear-gradient(90deg, #e53e3e 0%, #ed8936 25%, #ecc94b 50%, #68d391 75%, #38b2ac 100%);
   border-radius: 3px;
   transition: width 0.5s ease;
+}
+
+/* ===== VERSÃO MOBILE ===== */
+@media (max-width: 768px) {
+  .poker-table {
+    padding: 10px;
+    gap: 10px;
+    overflow-y: auto;
+  }
+
+  .table-felt {
+    max-width: 100%;
+    height: 300px;
+    border-radius: 120px;
+    border-width: 8px;
+    margin-top: 70px;
+  }
+
+  .pot-display {
+    padding: 6px 15px;
+  }
+
+  .pot-amount {
+    font-size: 18px;
+  }
+
+  .community-cards {
+    gap: 5px;
+  }
+
+  .phase-indicator {
+    font-size: 12px;
+  }
+
+  /* Posições dos jogadores mobile */
+  .position-0 {
+    bottom: -55px;
+  }
+
+  .position-1 {
+    left: -60px;
+  }
+
+  .position-2 {
+    top: -55px;
+  }
+
+  .position-3 {
+    right: -60px;
+  }
+
+  /* Controles */
+  .controls {
+    padding: 10px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .action-btn {
+    padding: 10px 15px;
+    font-size: 12px;
+  }
+
+  .raise-controls {
+    width: 100%;
+    flex-direction: row;
+    gap: 10px;
+  }
+
+  .raise-slider {
+    flex: 1;
+    width: auto;
+  }
+
+  .game-btn {
+    padding: 12px 25px;
+    font-size: 14px;
+  }
+
+  /* Winner announcement */
+  .winner-announcement {
+    padding: 25px 30px;
+  }
+
+  .trophy {
+    font-size: 40px;
+  }
+
+  .winner-text {
+    font-size: 20px;
+  }
+
+  .winner-hand {
+    font-size: 16px;
+  }
+
+  .winner-pot {
+    font-size: 18px;
+  }
+
+  /* Footer */
+  .game-footer {
+    padding: 8px 15px;
+  }
+
+  .developer {
+    font-size: 11px;
+    margin-bottom: 5px;
+  }
+
+  .contact-links {
+    gap: 8px;
+  }
+
+  .contact-link {
+    padding: 4px 8px;
+    font-size: 10px;
+    gap: 3px;
+  }
+
+  .contact-link .icon {
+    font-size: 12px;
+  }
+
+  /* Hand indicator */
+  .hand-indicator {
+    bottom: 10px;
+    right: 10px;
+    padding: 10px 15px;
+    min-width: 140px;
+  }
+
+  .hand-icon {
+    font-size: 20px;
+  }
+
+  .hand-label {
+    font-size: 10px;
+  }
+
+  .hand-name {
+    font-size: 14px;
+  }
+}
+
+/* ===== VERSÃO MOBILE PEQUENO ===== */
+@media (max-width: 480px) {
+  .table-felt {
+    height: 250px;
+    border-radius: 100px;
+    border-width: 6px;
+    margin-top: 60px;
+  }
+
+  .position-0 {
+    bottom: -45px;
+  }
+
+  .position-1 {
+    left: -45px;
+  }
+
+  .position-2 {
+    top: -45px;
+  }
+
+  .position-3 {
+    right: -45px;
+  }
+
+  .controls {
+    padding: 8px;
+  }
+
+  .action-btn {
+    padding: 8px 12px;
+    font-size: 11px;
+  }
+
+  .action-btn.all-in {
+    width: 100%;
+  }
+
+  .hand-indicator {
+    bottom: auto;
+    top: 10px;
+    right: 10px;
+  }
+}
+
+/* ===== LANDSCAPE MOBILE ===== */
+@media (max-height: 500px) {
+  .poker-table {
+    overflow-y: auto;
+    padding: 10px;
+  }
+
+  .table-felt {
+    height: 280px;
+    border-radius: 100px;
+    border-width: 8px;
+    margin-top: 50px;
+    flex-shrink: 0;
+  }
+
+  .position-0 {
+    bottom: -40px;
+  }
+
+  .position-1 {
+    left: -50px;
+  }
+
+  .position-2 {
+    top: -40px;
+  }
+
+  .position-3 {
+    right: -50px;
+  }
+
+  .controls {
+    padding: 8px;
+    gap: 6px;
+  }
+
+  .action-btn {
+    padding: 8px 12px;
+    font-size: 11px;
+  }
+
+  .game-footer {
+    display: none;
+  }
+
+  .hand-indicator {
+    bottom: 5px;
+    right: 5px;
+    padding: 8px 12px;
+    min-width: 120px;
+  }
+
+  .hand-icon {
+    font-size: 16px;
+  }
+
+  .hand-name {
+    font-size: 12px;
+  }
 }
 </style>

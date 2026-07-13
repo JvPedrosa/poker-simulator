@@ -180,4 +180,119 @@ const props = defineProps<{
   font-weight: bold;
   font-size: 18px;
 }
+
+/* ===== VERSÃO MOBILE ===== */
+@media (max-width: 768px) {
+  .player-seat {
+    padding: 8px;
+    min-width: 120px;
+    border-width: 2px;
+    border-radius: 8px;
+  }
+
+  .player-name {
+    font-size: 11px;
+  }
+
+  .dealer-badge {
+    width: 16px;
+    height: 16px;
+    font-size: 10px;
+  }
+
+  .player-chips {
+    font-size: 12px;
+    margin-top: 3px;
+  }
+
+  .chip-icon {
+    font-size: 14px;
+  }
+
+  .player-cards {
+    margin: 6px 0;
+  }
+
+  .player-bet {
+    padding: 3px 8px;
+    font-size: 10px;
+    margin-top: 5px;
+  }
+
+  .hand-rank {
+    padding: 3px 8px;
+    font-size: 9px;
+    margin-top: 5px;
+  }
+
+  .folded-badge {
+    padding: 3px 10px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .player-seat {
+    padding: 6px;
+    min-width: 90px;
+  }
+
+  .player-name {
+    font-size: 10px;
+  }
+
+  .player-chips {
+    font-size: 11px;
+  }
+
+  .chip-icon {
+    font-size: 12px;
+  }
+}
+
+/* ===== LANDSCAPE MOBILE ===== */
+@media (max-height: 500px) {
+  .player-seat {
+    padding: 5px;
+    min-width: 80px;
+    border-width: 2px;
+  }
+
+  .player-name {
+    font-size: 9px;
+  }
+
+  .dealer-badge {
+    width: 14px;
+    height: 14px;
+    font-size: 8px;
+  }
+
+  .player-chips {
+    font-size: 10px;
+  }
+
+  .chip-icon {
+    font-size: 11px;
+  }
+
+  .player-cards {
+    margin: 4px 0;
+  }
+
+  .player-bet {
+    padding: 2px 6px;
+    font-size: 9px;
+  }
+
+  .hand-rank {
+    padding: 2px 6px;
+    font-size: 8px;
+  }
+
+  .folded-badge {
+    padding: 2px 8px;
+    font-size: 10px;
+  }
+}
 </style>

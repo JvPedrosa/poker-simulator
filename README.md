@@ -11,6 +11,7 @@ Simulador de poker Texas Hold'em desenvolvido com Nuxt 4.
 - Sistema de blinds (Small/Big Blind)
 - Avaliação automática de mãos (Royal Flush até Carta Alta)
 - IA para jogadores adversários
+- IA local baseada em equity Monte Carlo, pot odds e perfis
 - Sistema de apostas e pote
 - Animações e efeitos visuais
 - Anúncio do vencedor com ranking de mão
@@ -78,3 +79,20 @@ nuxt-app/
 - **Vue 3.5.26** - Framework JavaScript reativo
 - **TypeScript** - Tipagem estática
 - **Vite** - Build tool
+
+## Arquitetura e qualidade
+
+- `usePoker.ts`: estado e fluxo da partida
+- `pokerEvaluator.ts`: melhor combinação de 5 entre até 7 cartas e desempate completo
+- `pokerAi.ts`: simulação Monte Carlo apenas com cartas disponíveis ao bot
+- Testes reproduzíveis do avaliador com Vitest
+
+```bash
+cd packages/nuxt-app
+npm test
+npm run build
+```
+
+## Pendências conhecidas
+
+Esta versão ainda não implementa side pots, divisão visual/financeira de empates, torneios, persistência, replay e memória estatística adaptativa. Essas funcionalidades exigem separar o motor de apostas do estado da interface; não são anunciadas como concluídas.

@@ -133,4 +133,111 @@ const suitClass = computed(() => {
   border: 2px solid #5c6bc0;
   border-radius: 4px;
 }
+
+/* ===== VERSÃO MOBILE ===== */
+@media (max-width: 768px) {
+  .card {
+    width: 50px;
+    height: 72px;
+    border-radius: 6px;
+  }
+
+  .card-corner {
+    font-size: 9px;
+  }
+
+  .top-left {
+    top: 3px;
+    left: 3px;
+  }
+
+  .bottom-right {
+    bottom: 3px;
+    right: 3px;
+  }
+
+  .rank {
+    font-size: 12px;
+  }
+
+  .suit-symbol.large {
+    font-size: 22px;
+  }
+
+  .pattern {
+    width: 35px;
+    height: 55px;
+  }
+}
+
+@media (max-width: 480px) {
+  .card {
+    width: 40px;
+    height: 58px;
+    border-radius: 4px;
+  }
+
+  .card-corner {
+    font-size: 8px;
+  }
+
+  .top-left {
+    top: 2px;
+    left: 2px;
+  }
+
+  .bottom-right {
+    bottom: 2px;
+    right: 2px;
+  }
+
+  .rank {
+    font-size: 10px;
+  }
+
+  .suit-symbol.large {
+    font-size: 18px;
+  }
+
+  .pattern {
+    width: 28px;
+    height: 45px;
+  }
+}
+
+/* ===== LANDSCAPE MOBILE ===== */
+@media (max-height: 500px) {
+  .card {
+    width: 35px;
+    height: 50px;
+    border-radius: 4px;
+  }
+
+  .card-corner {
+    font-size: 7px;
+  }
+
+  .top-left {
+    top: 2px;
+    left: 2px;
+  }
+
+  .bottom-right {
+    bottom: 2px;
+    right: 2px;
+  }
+
+  .rank {
+    font-size: 9px;
+  }
+
+  .suit-symbol.large {
+    font-size: 16px;
+  }
+
+  .pattern {
+    width: 24px;
+    height: 38px;
+  }
+}
 </style>

@@ -1,4 +1,6 @@
 // Types
+import { compareScores, evaluateBestHand } from "../utils/pokerEvaluator";
+import { decideBot } from "../utils/pokerAi";
 export interface Card {
   suit: "hearts" | "diamonds" | "clubs" | "spades";
   rank: string;
@@ -216,7 +218,7 @@ export const usePoker = () => {
 
     while (attempts < state.players.length) {
       const nextPlayer = state.players[nextIndex];
-      if (nextPlayer && !nextPlayer.folded) {
+      if (nextPlayer && !nextPlayer.folded && nextPlayer.chips > 0) {
         break;
       }
       nextIndex = (nextIndex + 1) % state.players.length;
@@ -234,7 +236,7 @@ export const usePoker = () => {
     if (activePlayers.length === 1) return true;
 
     // All active players must have same bet and have acted
-    return activePlayers.every((p) => p.bet === state.currentBet);
+    return activePlayers.every((p) => (p.bet === state.currentBet || p.chips === 0) && p.hasActed);
   };
 
   // Move to next phase
@@ -427,6 +429,8 @@ export const usePoker = () => {
 
   // Evaluate hand rank
   const evaluateHand = (hand: Card[], communityCards: Card[]): HandRank => {
+    return evaluateBestHand([...hand, ...communityCards]);
+    /*
     const allCards = [...hand, ...communityCards];
 
     // Sort by value descending
@@ -520,7 +524,7 @@ export const usePoker = () => {
     }
     
     // Fallback (should never happen)
-    return { rank: 0, name: "Sem Cartas", cards: [] };
+    return { rank: 0, name: "Sem Cartas", cards: [] }; */
   };
 
   const checkFlush = (cards: Card[]): Card[] | null => {
@@ -639,16 +643,7 @@ export const usePoker = () => {
     }
 
     // Sort by hand rank
-    activePlayers.sort((a, b) => {
-      if (!a.handRank || !b.handRank) return 0;
-      if (b.handRank.rank !== a.handRank.rank) {
-        return b.handRank.rank - a.handRank.rank;
-      }
-      // Compare high cards
-      const aHighCard = a.handRank.cards[0]?.value || 0;
-      const bHighCard = b.handRank.cards[0]?.value || 0;
-      return bHighCard - aHighCard;
-    });
+    activePlayers.sort((a,b)=>compareScores(evaluateBestHand([...b.hand,...state.communityCards]).score,evaluateBestHand([...a.hand,...state.communityCards]).score));
 
     const winner = activePlayers[0];
     if (winner) {
@@ -671,6 +666,10 @@ export const usePoker = () => {
 
     if (!currentPlayer || currentPlayer.id === 0 || currentPlayer.folded) return;
 
+    const decision=decideBot(currentPlayer,state.communityCards,state.pot,state.currentBet,state.players.filter(p=>!p.folded&&p.id!==currentPlayer.id).length,state.bigBlind);
+    if(decision.action==="fold")fold();else if(decision.action==="check")check();else if(decision.action==="call")call();else if(decision.action==="allIn")allIn();else raise(decision.raiseBy);
+    return;
+    /*
     // Evaluate current hand strength
     const handRank = evaluateHand(currentPlayer.hand, state.communityCards);
     const handStrength = calculateHandStrength(handRank, state.phase);
@@ -727,7 +726,7 @@ export const usePoker = () => {
           fold();
         }
       }
-    }
+    } */
   };
 
   // Calculate hand strength based on rank and phase
