@@ -1,0 +1,2 @@
+import type{Card}from"../composables/usePoker";import type{Rng}from"./random";const suits:Card["suit"][]=["hearts","diamonds","clubs","spades"],ranks=["2","3","4","5","6","7","8","9","10","J","Q","K","A"];
+export function createDeck(rng:Rng){const d=suits.flatMap(suit=>ranks.map((rank,i)=>({suit,rank,value:i+2})));for(let i=d.length-1;i;i--){const j=Math.floor(rng()*(i+1));[d[i],d[j]]=[d[j]!,d[i]!]}return d}

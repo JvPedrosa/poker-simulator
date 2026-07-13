@@ -1,6 +1,7 @@
 // Types
 import { compareScores, evaluateBestHand } from "../utils/pokerEvaluator";
 import { decideBot } from "../utils/pokerAi";
+import { distributePots, settlePots } from "../utils/pots";
 export interface Card {
   suit: "hearts" | "diamonds" | "clubs" | "spades";
   rank: string;
@@ -19,6 +20,8 @@ export interface Player {
   handRank?: HandRank;
   personality?: "tight" | "loose" | "aggressive" | "passive";
   hasActed?: boolean;
+  contribution: number;
+  stats: { hands:number; vpip:number; pfr:number; betsRaises:number; calls:number; folds:number; showdowns:number; wins:number };
 }
 
 export interface HandRank {
@@ -47,6 +50,15 @@ export interface GameState {
   winner: Player | null;
   smallBlind: number;
   bigBlind: number;
+  minRaise: number;
+  winners: Player[];
+  history: string[];
+  lastDecision: string;
+  handNumber: number;
+  mode: "cash"|"tournament";
+  paused: boolean;
+  spectator: boolean;
+  actionDelay: number;
 }
 
 const SUITS: Card["suit"][] = ["hearts", "diamonds", "clubs", "spades"];
@@ -79,6 +91,11 @@ export const usePoker = () => {
     winner: null,
     smallBlind: 10,
     bigBlind: 20,
+    minRaise: 20,
+    winners: [],
+    history: [],
+    lastDecision: "",
+    handNumber: 0, mode:"cash", paused:false, spectator:false, actionDelay:800,
   }));
 
   // Create a new deck
@@ -135,6 +152,8 @@ export const usePoker = () => {
         isDealer: i === 0,
         isCurrentPlayer: false,
         personality: i === 0 ? undefined : personalities[i % 4],
+        contribution: 0,
+        stats:{hands:0,vpip:0,pfr:0,betsRaises:0,calls:0,folds:0,showdowns:0,wins:0},
       });
     }
 
@@ -150,6 +169,11 @@ export const usePoker = () => {
       winner: null,
       smallBlind: 10,
       bigBlind: 20,
+      minRaise: 20,
+      winners: [],
+      history: [],
+      lastDecision: "",
+      handNumber:0, mode:"cash", paused:false, spectator:false, actionDelay:800,
     };
   };
 
@@ -161,6 +185,10 @@ export const usePoker = () => {
     state.pot = 0;
     state.currentBet = state.bigBlind;
     state.winner = null;
+    state.winners = [];
+    state.minRaise = state.bigBlind;
+    state.handNumber++;
+    if(state.mode==="tournament"&&state.handNumber>1&&(state.handNumber-1)%5===0){state.smallBlind*=2;state.bigBlind*=2;state.history.unshift(`Novo nível: blinds ${state.smallBlind}/${state.bigBlind}`)}
 
     // Reset players
     state.players.forEach((player, index) => {
@@ -171,11 +199,14 @@ export const usePoker = () => {
       player.isCurrentPlayer = false;
       player.handRank = undefined;
       player.hasActed = false;
+      player.contribution = 0;
+      if(player.chips>0)player.stats.hands++;
+      if(player.chips===0) player.folded=true;
     });
 
     // Deal 2 cards to each player
     for (let i = 0; i < 2; i++) {
-      for (const player of state.players) {
+      for (const player of state.players.filter(p=>p.chips>0)) {
         if (state.deck.length > 0) {
           player.hand.push(state.deck.pop()!);
         }
@@ -190,15 +221,11 @@ export const usePoker = () => {
     const bigBlindPlayer = state.players[bigBlindIndex];
 
     if (smallBlindPlayer) {
-      smallBlindPlayer.chips -= state.smallBlind;
-      smallBlindPlayer.bet = state.smallBlind;
-      state.pot += state.smallBlind;
+      const paid=Math.min(smallBlindPlayer.chips,state.smallBlind);smallBlindPlayer.chips-=paid;smallBlindPlayer.bet=paid;smallBlindPlayer.contribution=paid;state.pot+=paid;
     }
 
     if (bigBlindPlayer) {
-      bigBlindPlayer.chips -= state.bigBlind;
-      bigBlindPlayer.bet = state.bigBlind;
-      state.pot += state.bigBlind;
+      const paid=Math.min(bigBlindPlayer.chips,state.bigBlind);bigBlindPlayer.chips-=paid;bigBlindPlayer.bet=paid;bigBlindPlayer.contribution=paid;state.pot+=paid;
     }
 
     // Set current player (after big blind)
@@ -297,6 +324,8 @@ export const usePoker = () => {
     if (!currentPlayer) return;
     
     currentPlayer.folded = true;
+    currentPlayer.stats.folds++;
+    state.history.unshift(`${currentPlayer.name}: fold`);
     currentPlayer.isCurrentPlayer = false;
     currentPlayer.hasActed = true;
 
@@ -326,7 +355,10 @@ export const usePoker = () => {
       const actualCall = Math.min(callAmount, currentPlayer.chips);
       currentPlayer.chips -= actualCall;
       currentPlayer.bet += actualCall;
+      currentPlayer.contribution += actualCall;
+      currentPlayer.stats.calls++;if(state.phase==="preflop"&&actualCall>state.bigBlind)currentPlayer.stats.vpip++;
       state.pot += actualCall;
+      state.history.unshift(`${currentPlayer.name}: call ${actualCall}`);
     }
 
     currentPlayer.isCurrentPlayer = false;
@@ -339,14 +371,19 @@ export const usePoker = () => {
     const currentPlayer = state.players[state.currentPlayerIndex];
     if (!currentPlayer) return;
     
+    if(amount<state.minRaise)return;
     const totalBet = state.currentBet + amount;
     const toCall = totalBet - currentPlayer.bet;
 
     if (toCall <= currentPlayer.chips) {
       currentPlayer.chips -= toCall;
       currentPlayer.bet = totalBet;
+      currentPlayer.contribution += toCall;
       state.pot += toCall;
       state.currentBet = totalBet;
+      state.minRaise=amount;
+      currentPlayer.stats.betsRaises++;if(state.phase==="preflop"){currentPlayer.stats.pfr++;currentPlayer.stats.vpip++}
+      state.history.unshift(`${currentPlayer.name}: raise para ${totalBet}`);
       
       // Reset hasActed for all other players since bet increased
       state.players.forEach((p) => {
@@ -367,6 +404,7 @@ export const usePoker = () => {
     if (!currentPlayer) return;
 
     if (currentPlayer.bet === state.currentBet) {
+      state.history.unshift(`${currentPlayer.name}: check`);
       currentPlayer.isCurrentPlayer = false;
       currentPlayer.hasActed = true;
       moveToNextPlayer();
@@ -382,7 +420,10 @@ export const usePoker = () => {
 
     state.pot += allInAmount;
     currentPlayer.bet += allInAmount;
+    currentPlayer.contribution += allInAmount;
     currentPlayer.chips = 0;
+    currentPlayer.stats.betsRaises++;if(state.phase==="preflop"){currentPlayer.stats.pfr++;currentPlayer.stats.vpip++}
+    state.history.unshift(`${currentPlayer.name}: all-in ${allInAmount}`);
 
     if (currentPlayer.bet > state.currentBet) {
       state.currentBet = currentPlayer.bet;
@@ -640,16 +681,13 @@ export const usePoker = () => {
     // Evaluate all hands
     for (const player of activePlayers) {
       player.handRank = evaluateHand(player.hand, state.communityCards);
+      player.stats.showdowns++;
     }
 
     // Sort by hand rank
     activePlayers.sort((a,b)=>compareScores(evaluateBestHand([...b.hand,...state.communityCards]).score,evaluateBestHand([...a.hand,...state.communityCards]).score));
 
-    const winner = activePlayers[0];
-    if (winner) {
-      state.winner = winner;
-      winner.chips += state.pot;
-    }
+    const awards=settlePots(state.players,state.communityCards,state.dealerIndex);distributePots(state.players,awards);state.winners=[...new Set(awards.flatMap(a=>a.winnerIds))].map(id=>state.players.find(p=>p.id===id)!).filter(Boolean);state.winners.forEach(p=>p.stats.wins++);state.winner=state.winners[0]||null;state.history.unshift(...awards.map((a,i)=>`Pote ${i+1}: ${a.amount} → ${a.winnerIds.map(id=>state.players[id]?.name).join(" / ")}`));
   };
 
   // Start new round
@@ -664,9 +702,10 @@ export const usePoker = () => {
     const state = gameState.value;
     const currentPlayer = state.players[state.currentPlayerIndex];
 
-    if (!currentPlayer || currentPlayer.id === 0 || currentPlayer.folded) return;
+    if (!currentPlayer || (currentPlayer.id === 0 && !state.spectator) || currentPlayer.folded || state.paused) return;
 
     const decision=decideBot(currentPlayer,state.communityCards,state.pot,state.currentBet,state.players.filter(p=>!p.folded&&p.id!==currentPlayer.id).length,state.bigBlind);
+    state.lastDecision=`${currentPlayer.name} (${currentPlayer.personality}): equity ${(decision.equity*100).toFixed(0)}%, pot odds ${(decision.potOdds*100).toFixed(0)}% → ${decision.action}`;
     if(decision.action==="fold")fold();else if(decision.action==="check")check();else if(decision.action==="call")call();else if(decision.action==="allIn")allIn();else raise(decision.raiseBy);
     return;
     /*

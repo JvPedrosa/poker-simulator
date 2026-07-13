@@ -19,13 +19,8 @@ Simulador de poker Texas Hold'em desenvolvido com Nuxt 4.
 ## 🚀 Como executar
 
 ```bash
-# Navegar até a pasta do projeto
-cd nuxt-app
-
-# Instalar dependências (se necessário)
+# Na raiz do repositório
 npm install
-
-# Executar em modo desenvolvimento
 npm run dev
 ```
 
@@ -86,6 +81,7 @@ nuxt-app/
 - `pokerEvaluator.ts`: melhor combinação de 5 entre até 7 cartas e desempate completo
 - `pokerAi.ts`: simulação Monte Carlo apenas com cartas disponíveis ao bot
 - Testes reproduzíveis do avaliador com Vitest
+- `engine/`: motor puro e determinístico, regras de turnos, blinds e apostas legais
 
 ```bash
 cd packages/nuxt-app

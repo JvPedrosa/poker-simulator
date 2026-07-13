@@ -29,7 +29,7 @@
           :key="player.id"
           :player="player"
           :show-cards="player.id === 0 || gameState.phase === 'showdown'"
-          :is-winner="gameState.winner?.id === player.id"
+          :is-winner="gameState.winners.some(w => w.id === player.id)"
           class="player-position"
           :class="`position-${player.id}`"
         />
@@ -92,6 +92,14 @@
     </div>
 
     <div class="game-controls">
+      <div v-if="gameState.phase === 'waiting'" class="setup-controls">
+        <label>Jogadores <select v-model.number="settings.players"><option v-for="n in [2,3,4]" :key="n" :value="n">{{ n }}</option></select></label>
+        <label>Stack <input v-model.number="settings.stack" type="number" min="200" step="100"></label>
+        <label>Big blind <input v-model.number="settings.bigBlind" type="number" min="10" step="10"></label>
+        <label>Modo <select v-model="settings.mode"><option value="cash">Cash game</option><option value="tournament">Torneio</option></select></label>
+        <label>Velocidade <select v-model.number="settings.delay"><option :value="250">Rápida</option><option :value="800">Normal</option><option :value="1500">Lenta</option></select></label>
+        <label><input v-model="settings.spectator" type="checkbox"> Somente bots</label>
+      </div>
       <button 
         v-if="gameState.phase === 'waiting'" 
         class="game-btn start" 
@@ -99,6 +107,7 @@
       >
         🎴 Iniciar Jogo
       </button>
+      <button v-if="gameState.phase !== 'waiting' && gameState.phase !== 'showdown'" class="game-btn" @click="gameState.paused=!gameState.paused">{{ gameState.paused ? '▶ Continuar' : '⏸ Pausar' }}</button>
       
       <button 
         v-if="gameState.phase === 'showdown'" 
@@ -108,6 +117,12 @@
         🔄 Nova Rodada
       </button>
     </div>
+
+    <section v-if="gameState.lastDecision || gameState.history.length" class="insights" aria-live="polite">
+      <details v-if="gameState.lastDecision" open><summary>Explicação da IA</summary><p>{{ gameState.lastDecision }}</p></details>
+      <details><summary>Histórico da mão ({{ gameState.history.length }})</summary><ol><li v-for="(event,index) in gameState.history" :key="index">{{ event }}</li></ol></details>
+      <details><summary>Estatísticas</summary><div class="stats"><p v-for="p in gameState.players" :key="p.id"><strong>{{ p.name }}</strong> — VPIP {{ percent(p.stats.vpip,p.stats.hands) }} · PFR {{ percent(p.stats.pfr,p.stats.hands) }} · AF {{ aggression(p) }} · Fold {{ percent(p.stats.folds,p.stats.hands) }} · SD {{ percent(p.stats.showdowns,p.stats.hands) }}</p></div></details>
+    </section>
 
     <!-- Indicador de Mão do Jogador -->
     <div v-if="playerHandInfo && gameState.phase !== 'waiting'" class="hand-indicator">
@@ -126,7 +141,7 @@
     <div v-if="gameState.winner && gameState.phase === 'showdown'" class="winner-announcement">
       <div class="winner-content">
         <span class="trophy">🏆</span>
-        <span class="winner-text">{{ gameState.winner.name }} venceu!</span>
+        <span class="winner-text">{{ gameState.winners.map(w => w.name).join(' e ') }} venceu!</span>
         <span v-if="gameState.winner.handRank" class="winner-hand">
           {{ gameState.winner.handRank.name }}
         </span>
@@ -167,6 +182,9 @@ const {
 } = usePoker()
 
 const raiseAmount = ref(20)
+const settings = reactive({ players: 4, stack: 1000, bigBlind: 20, mode:'cash' as 'cash'|'tournament', delay:800, spectator:false })
+const percent=(n:number,d:number)=>`${d?Math.round(n/d*100):0}%`
+const aggression=(p:any)=>(p.stats.calls?p.stats.betsRaises/p.stats.calls:p.stats.betsRaises).toFixed(1)
 
 const phaseLabels: Record<string, string> = {
   waiting: 'Aguardando...',
@@ -234,7 +252,11 @@ const maxRaise = computed(() => {
 const raiseStep = computed(() => gameState.value.bigBlind)
 
 const startGame = () => {
-  initGame(4, 1000)
+  if (import.meta.client) localStorage.setItem('poker-settings', JSON.stringify(settings))
+  initGame(settings.players, settings.stack)
+  gameState.value.bigBlind = settings.bigBlind
+  gameState.value.smallBlind = Math.max(1, Math.floor(settings.bigBlind / 2))
+  gameState.value.mode=settings.mode;gameState.value.actionDelay=settings.delay;gameState.value.spectator=settings.spectator
   dealCards()
 }
 
@@ -243,21 +265,23 @@ const raiseAction = () => {
 }
 
 // Watch for AI turns
-watch([() => gameState.value.currentPlayerIndex, () => gameState.value.phase], async ([newIndex, newPhase]) => {
+watch([() => gameState.value.currentPlayerIndex, () => gameState.value.phase,()=>gameState.value.paused], async ([newIndex, newPhase]) => {
   if (newPhase === 'waiting' || newPhase === 'showdown') return;
   
   const currentPlayer = gameState.value.players[newIndex]
-  if (currentPlayer && currentPlayer.id !== 0 && !currentPlayer.folded) {
+  if (currentPlayer && (currentPlayer.id !== 0 || gameState.value.spectator) && !currentPlayer.folded && !gameState.value.paused) {
     // Add delay for AI action
-    await new Promise(resolve => setTimeout(resolve, 800))
+    await new Promise(resolve => setTimeout(resolve, gameState.value.actionDelay))
     aiAction()
   }
 }, { immediate: true })
 
 // Initialize game on mount
 onMounted(() => {
-  initGame(4, 1000)
+  const saved=localStorage.getItem('poker-settings');if(saved)Object.assign(settings,JSON.parse(saved))
+  const savedGame=localStorage.getItem('poker-game-v2');if(savedGame)gameState.value=JSON.parse(savedGame);else initGame(4, 1000)
 })
+watch(gameState,state=>{if(import.meta.client)localStorage.setItem('poker-game-v2',JSON.stringify(state))},{deep:true})
 </script>
 
 <style scoped>
@@ -272,6 +296,8 @@ onMounted(() => {
   overflow-y: auto;
   overflow-x: hidden;
 }
+
+.setup-controls,.insights{display:flex;gap:12px;flex-wrap:wrap;background:rgba(0,0,0,.35);padding:12px 16px;border-radius:12px;color:#e2e8f0}.setup-controls label{display:grid;gap:4px;font-size:12px}.setup-controls input,.setup-controls select{background:#1a202c;color:white;border:1px solid #4a5568;border-radius:6px;padding:6px}.insights{width:min(900px,100%)}.insights details{flex:1;min-width:250px}.insights summary{cursor:pointer;color:#f6e05e;font-weight:700}.insights p,.insights ol{margin-top:8px;font-size:13px;line-height:1.5;max-height:130px;overflow:auto}.insights li{margin-left:18px}.stats{max-height:140px;overflow:auto}
 
 .table-felt {
   width: 100%;

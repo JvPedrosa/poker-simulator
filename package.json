@@ -1,0 +1,14 @@
+{
+  "name": "poker-simulator",
+  "private": true,
+  "workspaces": [
+    "packages/nuxt-app"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=nuxt-app",
+    "build": "npm run build --workspace=nuxt-app",
+    "test": "npm run test --workspace=nuxt-app",
+    "generate": "npm run generate --workspace=nuxt-app",
+    "preview": "npm run preview --workspace=nuxt-app"
+  }
+}
