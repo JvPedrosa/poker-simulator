@@ -4,15 +4,19 @@ Simulador de poker Texas Hold'em desenvolvido com Nuxt 4.
 
 ## 🎮 Funcionalidades
 
-- Mesa de poker visual com 4 jogadores
+- Mesa Texas Hold'em para 2 a 4 jogadores
 - Cartas com design estilizado (frente e verso)
 - Fases completas do jogo: Pre-Flop, Flop, Turn, River e Showdown
 - Ações do jogador: Fold, Check, Call, Raise, All-In
 - Sistema de blinds (Small/Big Blind)
 - Avaliação automática de mãos (Royal Flush até Carta Alta)
-- IA para jogadores adversários
-- IA local baseada em equity Monte Carlo, pot odds e perfis
-- Sistema de apostas e pote
+- Motor determinístico com ações validadas, heads-up, short all-ins, side pots e empates
+- IA local baseada em equity Monte Carlo, pot odds, SPR, posição, ranges estatísticos e perfis
+- Perfis TAG, LAG, recreativo, adaptativo, tight, loose, agressivo e passivo
+- Cash game com recompra e saída de mesa
+- Torneio com blinds progressivos, eliminação, classificação e premiação simulada
+- Histórico persistente, snapshots e replay passo a passo
+- Estatísticas por jogador: VPIP, PFR, agressividade, folds, showdowns e vitórias
 - Animações e efeitos visuais
 - Anúncio do vencedor com ranking de mão
 
@@ -30,13 +34,14 @@ O simulador estará disponível em `http://localhost:3000`
 
 ```
 nuxt-app/
-├── app/
+├── packages/nuxt-app/app/
 │   ├── components/
 │   │   ├── PlayingCard.vue      # Componente de carta
 │   │   ├── PlayerSeat.vue       # Assento do jogador
 │   │   └── PokerTable.vue       # Mesa de poker principal
-│   ├── composables/
-│   │   └── usePoker.ts          # Lógica do jogo
+│   ├── engine/                  # Motor puro de regras e apostas
+│   ├── composables/             # Adaptador entre motor e interface
+│   ├── persistence/             # Persistência versionada
 │   └── app.vue                  # Layout principal
 ├── nuxt.config.ts               # Configuração do Nuxt
 └── package.json
@@ -70,25 +75,25 @@ nuxt-app/
 
 ## 🛠️ Tecnologias
 
-- **Nuxt 4.2.2** - Framework Vue.js
-- **Vue 3.5.26** - Framework JavaScript reativo
+- **Nuxt 4** - Framework Vue.js
+- **Vue 3.5** - Framework JavaScript reativo
 - **TypeScript** - Tipagem estática
 - **Vite** - Build tool
 
 ## Arquitetura e qualidade
 
-- `usePoker.ts`: estado e fluxo da partida
+- `engine/game.ts`: regras, turnos, blinds, ações legais e progressão
+- `usePoker.ts`: estado, estatísticas e adaptação do motor à interface
 - `pokerEvaluator.ts`: melhor combinação de 5 entre até 7 cartas e desempate completo
 - `pokerAi.ts`: simulação Monte Carlo apenas com cartas disponíveis ao bot
 - Testes reproduzíveis do avaliador com Vitest
 - `engine/`: motor puro e determinístico, regras de turnos, blinds e apostas legais
 
 ```bash
-cd packages/nuxt-app
 npm test
 npm run build
 ```
 
-## Pendências conhecidas
+## Qualidade
 
-Esta versão ainda não implementa side pots, divisão visual/financeira de empates, torneios, persistência, replay e memória estatística adaptativa. Essas funcionalidades exigem separar o motor de apostas do estado da interface; não são anunciadas como concluídas.
+Os testes cobrem avaliação de mãos, desempates, potes laterais, empates, seed reproduzível, heads-up, ações ilegais, short all-ins, mudança de streets, persistência e IA. O projeto também inclui suporte a teclado, regiões anunciadas para leitor de tela e redução de movimento.

@@ -1,10 +1,253 @@
-import{createDeck}from"./deck";import{seededRng}from"./random";import type{EnginePlayer,EngineState,LegalActions,PokerAction,Street}from"./types";import{distributePots,settlePots}from"../utils/pots";
-const live=(p:EnginePlayer)=>!p.folded&&!p.allIn;
-function nextEligible(players:EnginePlayer[],from:number,predicate=(p:EnginePlayer)=>p.chips>0&&!p.folded){for(let n=1;n<=players.length;n++){const i=((from+n)%players.length+players.length)%players.length;if(predicate(players[i]!))return i}return((from%players.length)+players.length)%players.length}
-function take(p:EnginePlayer,amount:number){const paid=Math.min(amount,p.chips);p.chips-=paid;p.bet+=paid;p.contribution+=paid;p.allIn=p.chips===0;return paid}
-export function startHand(stacks:number[],opts:{dealer?:number;smallBlind?:number;bigBlind?:number;seed?:number;handNumber?:number}={}):EngineState{if(stacks.filter(x=>x>0).length<2)throw new Error("São necessários dois jogadores com fichas");const players=stacks.map((chips,id)=>({id,chips,hand:[],bet:0,contribution:0,folded:chips===0,allIn:false,acted:false})),requested=opts.dealer??0,dealer=players[requested]?.chips?requested:nextEligible(players,requested),headsUp=players.filter(p=>p.chips>0).length===2,sb=headsUp?dealer:nextEligible(players,dealer),bb=nextEligible(players,sb),smallBlind=opts.smallBlind??10,bigBlind=opts.bigBlind??20,deck=createDeck(seededRng(opts.seed??Date.now()));for(let r=0;r<2;r++)for(const p of players.filter(p=>p.chips>0))p.hand.push(deck.pop()!);take(players[sb]!,smallBlind);take(players[bb]!,bigBlind);const turn=headsUp?sb:nextEligible(players,bb,p=>live(p));return{players,deck,board:[],street:"preflop",dealer,smallBlindIndex:sb,bigBlindIndex:bb,turn,smallBlind,bigBlind,currentBet:players[bb]!.bet,lastFullRaise:bigBlind,pot:players.reduce((n,p)=>n+p.contribution,0),handNumber:opts.handNumber??1,winners:[],log:[`Blinds ${smallBlind}/${bigBlind}`]}}
-export function legalActions(s:EngineState,id=s.turn):LegalActions{const p=s.players[id];if(!p||id!==s.turn||s.street==="showdown"||!live(p))return{fold:false,check:false,call:0,minRaiseTo:null,maxRaiseTo:0,allIn:false};const call=Math.min(p.chips,Math.max(0,s.currentBet-p.bet)),max=p.bet+p.chips,min=s.currentBet+s.lastFullRaise;return{fold:true,check:call===0,call,minRaiseTo:max>=min?min:null,maxRaiseTo:max,allIn:p.chips>0}}
-function roundComplete(s:EngineState){return s.players.filter(live).every(p=>p.acted&&p.bet===s.currentBet)}
-function settle(s:EngineState){s.street="showdown";const awards=settlePots(s.players,s.board,s.dealer);distributePots(s.players,awards);s.winners=[...new Set(awards.flatMap(p=>p.winnerIds))];s.log.push(...awards.map((p,i)=>`Pote ${i+1} (${p.amount}): ${p.winnerIds.join(",")}`))}
-function advance(s:EngineState){const contenders=s.players.filter(p=>!p.folded);if(contenders.length===1){const winner=contenders[0]!;winner.chips+=s.pot;s.winners=[winner.id];s.street="showdown";s.log.push(`Vitória por fold: ${winner.id}`);return}s.players.forEach(p=>{p.bet=0;p.acted=false});s.currentBet=0;s.lastFullRaise=s.bigBlind;if(s.street==="river"){settle(s);return}const count=s.street==="preflop"?3:1;for(let i=0;i<count;i++)s.board.push(s.deck.pop()!);s.street=({preflop:"flop",flop:"turn",turn:"river"}as Record<string,Street>)[s.street]!;const capable=s.players.filter(live);if(capable.length<2){advance(s);return}s.turn=nextEligible(s.players,s.dealer,live);s.log.push(s.street)}
-export function applyAction(input:EngineState,action:PokerAction):EngineState{const s=structuredClone(input),p=s.players[s.turn]!,legal=legalActions(s),before=p.contribution;if(!legal.fold)throw new Error("Jogador não pode agir");if(action.type==="fold"){p.folded=true;s.log.push(`${p.id}: fold`)}else if(action.type==="check"){if(!legal.check)throw new Error("Check ilegal");s.log.push(`${p.id}: check`)}else if(action.type==="call"){if(!legal.call)throw new Error("Call ilegal");take(p,legal.call);s.log.push(`${p.id}: call`)}else if(action.type==="raiseTo"){if(action.amount>legal.maxRaiseTo||action.amount<(legal.minRaiseTo??Infinity))throw new Error("Raise ilegal");const old=s.currentBet;take(p,action.amount-p.bet);s.currentBet=p.bet;s.lastFullRaise=s.currentBet-old;s.players.filter(x=>x.id!==p.id&&live(x)).forEach(x=>x.acted=false);s.log.push(`${p.id}: raise ${action.amount}`)}else{const old=s.currentBet;take(p,p.chips);if(p.bet>s.currentBet){const increment=p.bet-s.currentBet;s.currentBet=p.bet;if(increment>=s.lastFullRaise){s.lastFullRaise=increment;s.players.filter(x=>x.id!==p.id&&live(x)).forEach(x=>x.acted=false)}}s.log.push(`${p.id}: all-in`)}s.pot+=p.contribution-before;p.acted=true;if(s.players.filter(x=>!x.folded).length===1||roundComplete(s))advance(s);else s.turn=nextEligible(s.players,p.id,live);return s}
+import { createDeck } from "./deck";
+import { seededRng } from "./random";
+import type {
+  EnginePlayer,
+  EngineState,
+  LegalActions,
+  PokerAction,
+  Street,
+} from "./types";
+import { distributePots, settlePots } from "../utils/pots";
+
+const live = (player: EnginePlayer) => !player.folded && !player.allIn;
+
+function nextEligible(
+  players: EnginePlayer[],
+  from: number,
+  predicate = (player: EnginePlayer) => player.chips > 0 && !player.folded,
+) {
+  for (let offset = 1; offset <= players.length; offset++) {
+    const index = ((from + offset) % players.length + players.length) % players.length;
+    if (predicate(players[index]!)) return index;
+  }
+
+  return ((from % players.length) + players.length) % players.length;
+}
+
+function take(player: EnginePlayer, amount: number) {
+  const paid = Math.min(amount, player.chips);
+  player.chips -= paid;
+  player.bet += paid;
+  player.contribution += paid;
+  player.allIn = player.chips === 0;
+  return paid;
+}
+
+export function startHand(
+  stacks: number[],
+  options: {
+    dealer?: number;
+    smallBlind?: number;
+    bigBlind?: number;
+    seed?: number;
+    handNumber?: number;
+  } = {},
+): EngineState {
+  if (stacks.filter((stack) => stack > 0).length < 2) {
+    throw new Error("São necessários dois jogadores com fichas");
+  }
+
+  const players = stacks.map((chips, id) => ({
+    id,
+    chips,
+    hand: [],
+    bet: 0,
+    contribution: 0,
+    folded: chips === 0,
+    allIn: false,
+    acted: false,
+  }));
+  const requestedDealer = options.dealer ?? 0;
+  const dealer = players[requestedDealer]?.chips
+    ? requestedDealer
+    : nextEligible(players, requestedDealer);
+  const headsUp = players.filter((player) => player.chips > 0).length === 2;
+  const smallBlindIndex = headsUp ? dealer : nextEligible(players, dealer);
+  const bigBlindIndex = nextEligible(players, smallBlindIndex);
+  const smallBlind = options.smallBlind ?? 10;
+  const bigBlind = options.bigBlind ?? 20;
+  const deck = createDeck(seededRng(options.seed ?? Date.now()));
+
+  for (let round = 0; round < 2; round++) {
+    for (const player of players.filter((candidate) => candidate.chips > 0)) {
+      player.hand.push(deck.pop()!);
+    }
+  }
+
+  take(players[smallBlindIndex]!, smallBlind);
+  take(players[bigBlindIndex]!, bigBlind);
+
+  return {
+    players,
+    deck,
+    board: [],
+    street: "preflop",
+    dealer,
+    smallBlindIndex,
+    bigBlindIndex,
+    turn: headsUp ? smallBlindIndex : nextEligible(players, bigBlindIndex, live),
+    smallBlind,
+    bigBlind,
+    currentBet: players[bigBlindIndex]!.bet,
+    lastFullRaise: bigBlind,
+    pot: players.reduce((sum, player) => sum + player.contribution, 0),
+    handNumber: options.handNumber ?? 1,
+    winners: [],
+    log: [`Blinds ${smallBlind}/${bigBlind}`],
+  };
+}
+
+export function legalActions(state: EngineState, id = state.turn): LegalActions {
+  const player = state.players[id];
+  if (!player || id !== state.turn || state.street === "showdown" || !live(player)) {
+    return {
+      fold: false,
+      check: false,
+      call: 0,
+      minRaiseTo: null,
+      maxRaiseTo: 0,
+      allIn: false,
+    };
+  }
+
+  const call = Math.min(player.chips, Math.max(0, state.currentBet - player.bet));
+  const maxRaiseTo = player.bet + player.chips;
+  const minRaiseTo = state.currentBet + state.lastFullRaise;
+  // `acted` is reset only after a full raise. A player who has already acted
+  // may call a short all-in, but that incomplete raise cannot reopen betting.
+  const canRaise = !player.acted;
+
+  return {
+    fold: true,
+    check: call === 0,
+    call,
+    minRaiseTo: canRaise && maxRaiseTo >= minRaiseTo ? minRaiseTo : null,
+    maxRaiseTo,
+    allIn: player.chips > 0 && (canRaise || maxRaiseTo <= state.currentBet),
+  };
+}
+
+function roundComplete(state: EngineState) {
+  return state.players
+    .filter(live)
+    .every((player) => player.acted && player.bet === state.currentBet);
+}
+
+function settle(state: EngineState) {
+  state.street = "showdown";
+  const awards = settlePots(state.players, state.board, state.dealer);
+  distributePots(state.players, awards);
+  state.winners = [...new Set(awards.flatMap((pot) => pot.winnerIds))];
+  state.log.push(
+    ...awards.map((pot, index) => `Pote ${index + 1} (${pot.amount}): ${pot.winnerIds.join(",")}`),
+  );
+}
+
+function advance(state: EngineState) {
+  const contenders = state.players.filter((player) => !player.folded);
+  if (contenders.length === 1) {
+    const winner = contenders[0]!;
+    winner.chips += state.pot;
+    state.winners = [winner.id];
+    state.street = "showdown";
+    state.log.push(`Vitória por fold: ${winner.id}`);
+    return;
+  }
+
+  state.players.forEach((player) => {
+    player.bet = 0;
+    player.acted = false;
+  });
+  state.currentBet = 0;
+  state.lastFullRaise = state.bigBlind;
+
+  if (state.street === "river") {
+    settle(state);
+    return;
+  }
+
+  const cardsToDeal = state.street === "preflop" ? 3 : 1;
+  for (let index = 0; index < cardsToDeal; index++) {
+    state.board.push(state.deck.pop()!);
+  }
+
+  state.street = ({
+    preflop: "flop",
+    flop: "turn",
+    turn: "river",
+  } as Record<string, Street>)[state.street]!;
+
+  const capablePlayers = state.players.filter(live);
+  if (capablePlayers.length < 2) {
+    advance(state);
+    return;
+  }
+
+  state.turn = nextEligible(state.players, state.dealer, live);
+  state.log.push(state.street);
+}
+
+export function applyAction(input: EngineState, action: PokerAction): EngineState {
+  const state = structuredClone(input);
+  const player = state.players[state.turn]!;
+  const legal = legalActions(state);
+  const contributionBeforeAction = player.contribution;
+
+  if (!legal.fold) throw new Error("Jogador não pode agir");
+
+  if (action.type === "fold") {
+    player.folded = true;
+    state.log.push(`${player.id}: fold`);
+  } else if (action.type === "check") {
+    if (!legal.check) throw new Error("Check ilegal");
+    state.log.push(`${player.id}: check`);
+  } else if (action.type === "call") {
+    if (!legal.call) throw new Error("Call ilegal");
+    take(player, legal.call);
+    state.log.push(`${player.id}: call`);
+  } else if (action.type === "raiseTo") {
+    if (action.amount > legal.maxRaiseTo || action.amount < (legal.minRaiseTo ?? Infinity)) {
+      throw new Error("Raise ilegal");
+    }
+
+    const previousBet = state.currentBet;
+    take(player, action.amount - player.bet);
+    state.currentBet = player.bet;
+    state.lastFullRaise = state.currentBet - previousBet;
+    state.players
+      .filter((candidate) => candidate.id !== player.id && live(candidate))
+      .forEach((candidate) => {
+        candidate.acted = false;
+      });
+    state.log.push(`${player.id}: raise ${action.amount}`);
+  } else {
+    if (!legal.allIn) throw new Error("All-in ilegal");
+
+    const previousBet = state.currentBet;
+    take(player, player.chips);
+    if (player.bet > state.currentBet) {
+      const increment = player.bet - state.currentBet;
+      state.currentBet = player.bet;
+      if (increment >= state.lastFullRaise) {
+        state.lastFullRaise = increment;
+        state.players
+          .filter((candidate) => candidate.id !== player.id && live(candidate))
+          .forEach((candidate) => {
+            candidate.acted = false;
+          });
+      }
+    }
+    state.log.push(`${player.id}: all-in`);
+  }
+
+  state.pot += player.contribution - contributionBeforeAction;
+  player.acted = true;
+
+  if (state.players.filter((candidate) => !candidate.folded).length === 1 || roundComplete(state)) {
+    advance(state);
+  } else {
+    state.turn = nextEligible(state.players, player.id, live);
+  }
+
+  return state;
+}

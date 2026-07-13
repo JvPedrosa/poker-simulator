@@ -1,18 +1,24 @@
 <template>
-  <div class="player-seat" :class="{ 
+  <article
+    class="player-seat"
+    :class="{
     'is-current': player.isCurrentPlayer, 
     'is-dealer': player.isDealer,
     'is-folded': player.folded,
     'is-winner': isWinner
-  }">
+    }"
+    :aria-label="seatLabel"
+    :aria-current="player.isCurrentPlayer ? 'true' : undefined"
+  >
     <div class="player-info">
       <div class="player-name">
         {{ player.name }}
-        <span v-if="player.isDealer" class="dealer-badge">D</span>
+        <span v-if="player.isDealer" class="dealer-badge" aria-label="Dealer">D</span>
       </div>
       <div class="player-chips">
-        <span class="chip-icon">🪙</span>
+        <span class="chip-icon" aria-hidden="true">🪙</span>
         {{ player.chips }}
+        <span class="sr-only">fichas</span>
       </div>
     </div>
     
@@ -34,10 +40,10 @@
       {{ player.handRank.name }}
     </div>
 
-    <div v-if="player.folded" class="folded-badge">
+    <div v-if="player.folded" class="folded-badge" aria-hidden="true">
       FOLD
     </div>
-  </div>
+  </article>
 </template>
 
 <script setup lang="ts">
@@ -48,6 +54,20 @@ const props = defineProps<{
   showCards?: boolean
   isWinner?: boolean
 }>()
+
+const seatLabel = computed(() => {
+  const states = [
+    `${props.player.name}, ${props.player.chips} fichas`,
+    props.player.isDealer ? 'dealer' : '',
+    props.player.isCurrentPlayer ? 'vez atual' : '',
+    props.player.folded ? 'desistiu' : '',
+    props.player.bet > 0 ? `aposta de ${props.player.bet}` : '',
+    props.isWinner ? 'vencedor da mão' : '',
+    props.player.handRank && props.showCards ? props.player.handRank.name : ''
+  ].filter(Boolean)
+
+  return states.join(', ')
+})
 </script>
 
 <style scoped>
@@ -78,6 +98,11 @@ const props = defineProps<{
   border-color: #f6e05e;
   box-shadow: 0 0 30px rgba(246, 224, 94, 0.5);
   animation: winner-glow 1s ease-in-out infinite alternate;
+}
+
+.player-seat[aria-current='true'] {
+  outline: 3px solid #f6e05e;
+  outline-offset: 3px;
 }
 
 @keyframes winner-glow {
@@ -179,6 +204,28 @@ const props = defineProps<{
   border-radius: 5px;
   font-weight: bold;
   font-size: 18px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .player-seat {
+    transition: none;
+  }
+
+  .player-seat.is-winner {
+    animation: none;
+  }
 }
 
 /* ===== VERSÃO MOBILE ===== */

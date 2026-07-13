@@ -1,13 +1,21 @@
 <template>
   <div class="app">
     <header class="header">
-      <h1>🃏 Poker Simulator</h1>
+      <h1><span aria-hidden="true">🃏 </span>Poker Simulator</h1>
     </header>
-    <main>
+    <a class="skip-link" href="#main-content">Pular para o conteúdo principal</a>
+    <main id="main-content" tabindex="-1">
       <PokerTable />
     </main>
   </div>
 </template>
+
+<script setup lang="ts">
+useHead({
+  htmlAttrs: { lang: 'pt-BR' },
+  title: 'Poker Simulator'
+})
+</script>
 
 <style>
 * {
@@ -29,9 +37,35 @@ body {
 
 .app {
   height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.skip-link {
+  position: fixed;
+  z-index: 1000;
+  top: 8px;
+  left: 8px;
+  transform: translateY(-150%);
+  padding: 10px 14px;
+  border-radius: 6px;
+  background: #f6e05e;
+  color: #1a202c;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+}
+
+:focus-visible {
+  outline: 3px solid #f6e05e;
+  outline-offset: 3px;
 }
 
 .header {

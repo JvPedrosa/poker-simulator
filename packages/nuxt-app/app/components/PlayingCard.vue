@@ -1,20 +1,25 @@
 <template>
-  <div class="card" :class="[suitClass, { 'face-down': !showFace }]">
+  <div
+    class="card"
+    :class="[suitClass, { 'face-down': !showFace }]"
+    role="img"
+    :aria-label="cardLabel"
+  >
     <template v-if="showFace && card">
-      <div class="card-corner top-left">
+      <div class="card-corner top-left" aria-hidden="true">
         <span class="rank">{{ card.rank }}</span>
         <span class="suit-symbol">{{ suitSymbol }}</span>
       </div>
-      <div class="card-center">
+      <div class="card-center" aria-hidden="true">
         <span class="suit-symbol large">{{ suitSymbol }}</span>
       </div>
-      <div class="card-corner bottom-right">
+      <div class="card-corner bottom-right" aria-hidden="true">
         <span class="rank">{{ card.rank }}</span>
         <span class="suit-symbol">{{ suitSymbol }}</span>
       </div>
     </template>
     <template v-else>
-      <div class="card-back">
+      <div class="card-back" aria-hidden="true">
         <div class="pattern"></div>
       </div>
     </template>
@@ -37,6 +42,27 @@ const suitSymbols: Record<string, string> = {
 }
 
 const suitSymbol = computed(() => props.card ? suitSymbols[props.card.suit] : '')
+
+const suitNames: Record<string, string> = {
+  hearts: 'copas',
+  diamonds: 'ouros',
+  clubs: 'paus',
+  spades: 'espadas'
+}
+
+const rankNames: Record<string, string> = {
+  A: 'ás',
+  K: 'rei',
+  Q: 'dama',
+  J: 'valete',
+  T: 'dez'
+}
+
+const cardLabel = computed(() => {
+  if (!props.showFace || !props.card) return 'Carta virada para baixo'
+  const rank = rankNames[props.card.rank] || props.card.rank
+  return `${rank} de ${suitNames[props.card.suit] || props.card.suit}`
+})
 
 const suitClass = computed(() => {
   if (!props.card || !props.showFace) return ''
@@ -61,6 +87,18 @@ const suitClass = computed(() => {
 
 .card:hover {
   transform: translateY(-5px);
+}
+
+@media (hover: none) {
+  .card:hover {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
 }
 
 .card.red {
